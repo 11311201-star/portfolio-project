@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>個人資料管理</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 40px;
+    }
+
+    .card {
+      max-width: 600px;
+      margin: auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0 15px 0;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    #editSection {
+      display: none;
+    }
+
+    #message {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <div id="loginSection">
+    <h1>管理者登入</h1>
+
+    <label>帳號</label>
+    <input type="text" id="username">
+
+    <label>密碼</label>
+    <input type="password" id="password">
+
+    <button onclick="login()">登入</button>
+  </div>
+
+  <div id="editSection">
+    <h1>修改個人資料</h1>
+
+    <label>姓名</label>
+    <input type="text" id="name">
+
+    <label>學校</label>
+    <input type="text" id="school">
+
+    <label>科系</label>
+    <input type="text" id="department">
+
+    <label>自我介紹</label>
+    <input type="text" id="introduction">
+
+    <label>技能（用逗號分隔）</label>
+    <input type="text" id="skills">
+
+    <label>興趣（用逗號分隔）</label>
+    <input type="text" id="interests">
+
+    <label>Email</label>
+    <input type="text" id="email">
+
+    <button onclick="saveProfile()">儲存資料</button>
+  </div>
+
+  <div id="message"></div>
+
+</div>
+
+<script>
+  let token = "";
+
+  async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const response = await fetch("http://localhost:3000/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      document.getElementById("message").textContent = "登入失敗";
+      return;
+    }
+
+    token = data.token;
+
+    document.getElementById("loginSection").style.display = "none";
+    document.getElementById("editSection").style.display = "block";
+    document.getElementById("message").textContent = "登入成功";
+
+    loadProfile();
+  }
+
+  async function loadProfile() {
+    const response = await fetch("http://localhost:3000/api/profile");
+    const data = await response.json();
+
+    document.getElementById("name").value = data.name || "";
+    document.getElementById("school").value = data.school || "";
+    document.getElementById("department").value = data.department || "";
+    document.getElementById("introduction").value = data.introduction || "";
+    document.getElementById("skills").value =
+      (data.skills || []).join(", ");
+    document.getElementById("interests").value =
+      (data.interests || []).join(", ");
+    document.getElementById("email").value = data.email || "";
+  }
+
+  async function saveProfile() {
+    const profile = {
+      name: document.getElementById("name").value,
+      school: document.getElementById("school").value,
+      department: document.getElementById("department").value,
+      introduction: document.getElementById("introduction").value,
+
+      skills: document.getElementById("skills").value
+        .split(",")
+        .map(item => item.trim())
+        .filter(item => item),
+
+      interests: document.getElementById("interests").value
+        .split(",")
+        .map(item => item.trim())
+        .filter(item => item),
+
+      email: document.getElementById("email").value
+    };
+
+    const response = await fetch("http://localhost:3000/api/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify(profile)
+    });
+
+    if (response.ok) {
+      document.getElementById("message").textContent = "資料更新成功！";
+    } else {
+      document.getElementById("message").textContent = "資料更新失敗";
+    }
+  }
+</script>
+
+</body>
+</html>
